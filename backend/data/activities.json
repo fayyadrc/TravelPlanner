@@ -383,5 +383,172 @@
     "area": "Deira",
     "time_of_day": "morning",
     "description": "Traditional wooden boat ride across the Creek to the glittering Gold Souk."
+  },
+  [
+  {
+    "id": "SP-A001",
+    "destination": "Barcelona",
+    "name": "Sagrada Familia Tour",
+    "type": ["culture", "sightseeing"],
+    "duration_hours": 2.0,
+    "cost": 30,
+    "area": "Eixample",
+    "time_of_day": "morning",
+    "description": "Skip-the-line access to Antoni Gaudí's unfinished masterpiece."
+  },
+  {
+    "id": "SP-A002",
+    "destination": "Barcelona",
+    "name": "Park Güell Visit",
+    "type": ["art", "nature"],
+    "duration_hours": 2.5,
+    "cost": 15,
+    "area": "Gracia",
+    "time_of_day": "afternoon",
+    "description": "Wander through the colourful mosaics and lush gardens overlooking the city."
+  },
+  {
+    "id": "SP-A003",
+    "destination": "Barcelona",
+    "name": "Gothic Quarter Tapas Tour",
+    "type": ["food", "culture"],
+    "duration_hours": 3.0,
+    "cost": 60,
+    "area": "Gothic Quarter",
+    "time_of_day": "evening",
+    "description": "Taste local wines and traditional tapas hidden in medieval alleyways."
+  },
+  {
+    "id": "TR-A001",
+    "destination": "Istanbul",
+    "name": "Hagia Sophia & Blue Mosque",
+    "type": ["culture", "sightseeing"],
+    "duration_hours": 3.0,
+    "cost": 0,
+    "area": "Sultanahmet",
+    "time_of_day": "morning",
+    "description": "Explore the architectural wonders of two of the world's most famous mosques."
+  },
+  {
+    "id": "TR-A002",
+    "destination": "Istanbul",
+    "name": "Bosphorus Sunset Cruise",
+    "type": ["sightseeing", "nature"],
+    "duration_hours": 2.0,
+    "cost": 45,
+    "area": "Eminonu",
+    "time_of_day": "evening",
+    "description": "Sail between Europe and Asia while the sun sets over the Istanbul skyline."
+  },
+  {
+    "id": "TR-A003",
+    "destination": "Istanbul",
+    "name": "Grand Bazaar Walk",
+    "type": ["shopping", "culture"],
+    "duration_hours": 2.5,
+    "cost": 0,
+    "area": "Fatih",
+    "time_of_day": "afternoon",
+    "description": "Get lost in one of the largest and oldest covered markets in the world."
+  },
+  {
+    "id": "IT-A001",
+    "destination": "Rome",
+    "name": "Colosseum & Roman Forum",
+    "type": ["culture", "sightseeing"],
+    "duration_hours": 3.0,
+    "cost": 24,
+    "area": "Historical Center",
+    "time_of_day": "morning",
+    "description": "Step back in time with access to the gladiator arena and ancient city ruins."
+  },
+  {
+    "id": "IT-A002",
+    "destination": "Rome",
+    "name": "Vatican Museums & Sistine Chapel",
+    "type": ["art", "culture"],
+    "duration_hours": 3.5,
+    "cost": 35,
+    "area": "Vatican City",
+    "time_of_day": "morning",
+    "description": "Witness Michelangelo's masterpiece and thousands of historic Roman artworks."
+  },
+  {
+    "id": "IT-A003",
+    "destination": "Rome",
+    "name": "Trastevere Food Tour",
+    "type": ["food"],
+    "duration_hours": 3.0,
+    "cost": 75,
+    "area": "Trastevere",
+    "time_of_day": "evening",
+    "description": "Sample artisanal cheeses, cured meats, and authentic Roman pasta."
+  },
+  {
+    "id": "MX-A001",
+    "destination": "Mexico City",
+    "name": "Teotihuacan Pyramids",
+    "type": ["culture", "adventure"],
+    "duration_hours": 6.0,
+    "cost": 50,
+    "area": "Outside Mexico City",
+    "time_of_day": "morning",
+    "description": "Climb the Pyramid of the Sun in this ancient Mesoamerican city."
+  },
+  {
+    "id": "MX-A002",
+    "destination": "Mexico City",
+    "name": "Xochimilco Boat Ride",
+    "type": ["culture", "nature"],
+    "duration_hours": 4.0,
+    "cost": 35,
+    "area": "Xochimilco",
+    "time_of_day": "afternoon",
+    "description": "Float down ancient Aztec canals on a colourful trajinera with mariachi music."
+  },
+  {
+    "id": "DE-A001",
+    "destination": "Berlin",
+    "name": "Brandenburg Gate & Reichstag",
+    "type": ["culture", "sightseeing"],
+    "duration_hours": 2.5,
+    "cost": 0,
+    "area": "Mitte",
+    "time_of_day": "morning",
+    "description": "Walk through Germany's symbol of unity and the historic parliament building."
+  },
+  {
+    "id": "DE-A002",
+    "destination": "Berlin",
+    "name": "Berlin Wall Memorial Walk",
+    "type": ["culture"],
+    "duration_hours": 2.0,
+    "cost": 0,
+    "area": "Prenzlauer Berg",
+    "time_of_day": "afternoon",
+    "description": "Learn about the Cold War division along the preserved strip of the Wall."
+  },
+  {
+    "id": "GR-A001",
+    "destination": "Athens",
+    "name": "Acropolis & Parthenon Tour",
+    "type": ["culture", "sightseeing"],
+    "duration_hours": 2.5,
+    "cost": 25,
+    "area": "Plaka",
+    "time_of_day": "morning",
+    "description": "Guided exploration of the iconic citadel above the city of Athens."
+  },
+  {
+    "id": "GR-A002",
+    "destination": "Athens",
+    "name": "Greek Cooking Class",
+    "type": ["food"],
+    "duration_hours": 3.5,
+    "cost": 65,
+    "area": "Monastiraki",
+    "time_of_day": "evening",
+    "description": "Learn to make authentic moussaka and tzatziki with a local chef."
   }
+]
 ]
