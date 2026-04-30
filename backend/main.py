@@ -350,6 +350,24 @@ def min_hotel_cost(hotel_candidates: List[Dict[str, Any]]) -> Optional[float]:
     return float(min(costs)) if costs else None
 
 
+def resolve_flight_cost(
+    selected_flights: List[Dict[str, Any]], destination: str
+) -> Tuple[Optional[float], bool]:
+    """Return the best flight cost and whether fallback data was used."""
+    if selected_flights:
+        return min(flight["price"] for flight in selected_flights), False
+    return min_flight_cost(destination), True
+
+
+def calculate_free_exploration_duration(needed: float, remaining_hours: float) -> float:
+    """Clamp free exploration duration to remaining hours and min/max bounds."""
+    return min(
+        max(needed, MIN_FREE_EXPLORATION_HOURS),
+        remaining_hours,
+        FREE_EXPLORATION_HOURS,
+    )
+
+
 def select_flights(destination: str, flight_budget: float) -> List[Dict[str, Any]]:
     normalized = normalize_destination(destination)
     candidates = [
@@ -516,7 +534,7 @@ def plan_itinerary(
         day_hours = 0.0
         day_cost = 0.0
         day_area: Optional[str] = None
-        free_index = 1
+        exploration_slot_index = 1
 
         while day_hours < MIN_DAY_HOURS:
             remaining_hours = MAX_DAY_HOURS - day_hours
@@ -545,13 +563,11 @@ def plan_itinerary(
             while day_hours < MIN_DAY_HOURS and day_hours < MAX_DAY_HOURS:
                 remaining_hours = MAX_DAY_HOURS - day_hours
                 needed = MIN_DAY_HOURS - day_hours
-                duration = min(
-                    max(needed, MIN_FREE_EXPLORATION_HOURS),
-                    remaining_hours,
-                    FREE_EXPLORATION_HOURS,
+                duration = calculate_free_exploration_duration(needed, remaining_hours)
+                day_activities.append(
+                    add_free_exploration(day, exploration_slot_index, duration)
                 )
-                day_activities.append(add_free_exploration(day, free_index, duration))
-                free_index += 1
+                exploration_slot_index += 1
                 day_hours += duration
 
         if day_hours < MIN_DAY_HOURS:
@@ -688,7 +704,8 @@ def get_plan_warnings(
                 continue
             if activity_id in seen_ids:
                 duplicates.add(activity_id)
-            seen_ids.add(activity_id)
+            else:
+                seen_ids.add(activity_id)
 
     if duplicates:
         warnings.append("Duplicate activities detected")
@@ -739,10 +756,10 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
     )
 
     missing_costs = False
-    if flights:
-        flight_cost = min(flight["price"] for flight in flights)
-    else:
-        flight_cost = min_flight_cost(request.destination)
+    flight_cost, used_fallback_flights = resolve_flight_cost(
+        flights, request.destination
+    )
+    if used_fallback_flights:
         if flight_cost is None:
             missing_costs = True
             flight_cost = 0.0
