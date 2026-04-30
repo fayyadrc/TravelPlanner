@@ -16,12 +16,21 @@ ACTIVITY_ALLOCATION = 0.25
 MAX_REALLOCATION = 0.20
 MIN_HOTEL_RATIO = 0.25
 MIN_ACTIVITY_RATIO = 0.15
+REALLOCATE_HOTEL_SHARE = 0.60
+REALLOCATE_ACTIVITY_SHARE = 0.40
 
 MIN_DAY_HOURS = 6.0
 MAX_DAY_HOURS = 8.0
 FREE_EXPLORATION_HOURS = 2.0
 AREA_BONUS = 1.5
 DISTANCE_PENALTY = 0.5
+HOTEL_RATING_WEIGHT = 0.7
+HOTEL_STAR_WEIGHT = 0.3
+HOTEL_PRICE_WEIGHT_DIVISOR = 200
+ACTIVITY_COST_BASELINE = 2.5
+ACTIVITY_COST_DIVISOR = 50
+OPTIMIZATION_REMAINING_THRESHOLD = 0.1
+MIN_BUDGET_UTILIZATION = 0.8
 
 
 FLIGHTS: List[Dict[str, Any]] = [
@@ -318,6 +327,21 @@ def allocate_budget(total_budget: float) -> Dict[str, float]:
     }
 
 
+def min_flight_cost(destination: str) -> float:
+    normalized = normalize_destination(destination)
+    costs = [
+        flight["price"]
+        for flight in FLIGHTS
+        if normalize_destination(flight["destination"]) == normalized
+    ]
+    return float(min(costs)) if costs else 0.0
+
+
+def min_hotel_cost(hotel_candidates: List[Dict[str, Any]]) -> float:
+    costs = [hotel["total_stay_cost"] for hotel in hotel_candidates]
+    return float(min(costs)) if costs else 0.0
+
+
 def select_flights(destination: str, flight_budget: float) -> List[Dict[str, Any]]:
     normalized = normalize_destination(destination)
     candidates = [
@@ -340,9 +364,12 @@ def reallocate_for_flights(
     min_hotel = total_budget * MIN_HOTEL_RATIO
     min_activities = total_budget * MIN_ACTIVITY_RATIO
 
-    shift_hotel = min(max_shift * 0.6, max(0.0, budgets["hotel"] - min_hotel))
+    shift_hotel = min(
+        max_shift * REALLOCATE_HOTEL_SHARE, max(0.0, budgets["hotel"] - min_hotel)
+    )
     shift_activities = min(
-        max_shift * 0.4, max(0.0, budgets["activities"] - min_activities)
+        max_shift * REALLOCATE_ACTIVITY_SHARE,
+        max(0.0, budgets["activities"] - min_activities),
     )
     total_shift = shift_hotel + shift_activities
     if total_shift <= 0:
@@ -364,7 +391,11 @@ def reallocate_for_flights(
 
 
 def hotel_score(hotel: Dict[str, Any]) -> float:
-    return hotel["rating"] * 0.7 + hotel["stars"] * 0.3 - hotel["price_per_night"] / 200
+    return (
+        hotel["rating"] * HOTEL_RATING_WEIGHT
+        + hotel["stars"] * HOTEL_STAR_WEIGHT
+        - hotel["price_per_night"] / HOTEL_PRICE_WEIGHT_DIVISOR
+    )
 
 
 def select_hotels(
@@ -400,7 +431,7 @@ def activity_score(
     activity: Dict[str, Any], preferences: List[str], day_area: Optional[str]
 ) -> float:
     score = preference_score(activity, preferences)
-    score += max(0.0, 2.5 - activity["cost"] / 50)
+    score += max(0.0, ACTIVITY_COST_BASELINE - activity["cost"] / ACTIVITY_COST_DIVISOR)
     if day_area:
         if activity["area"] == day_area:
             score += AREA_BONUS
@@ -604,7 +635,7 @@ def optimize_plan(
             plan["breakdown"]["hotel"] = upgraded["total_stay_cost"]
 
     improvement = True
-    while remaining_budget > total_budget * 0.1 and improvement:
+    while remaining_budget > total_budget * OPTIMIZATION_REMAINING_THRESHOLD and improvement:
         improvement = False
         spent, added = add_optional_activity(
             itinerary, activities, used_ids, preferences, remaining_budget
@@ -627,6 +658,8 @@ def validate_plan(
 
     if not plan["flights"]:
         warnings.append("No flights selected")
+    if not plan["hotels"]:
+        warnings.append("No hotels selected")
 
     seen_ids = set()
     duplicates = set()
@@ -640,7 +673,7 @@ def validate_plan(
     if duplicates:
         warnings.append("Duplicate activities detected")
 
-    if plan["total_cost"] / total_budget < 0.8:
+    if plan["total_cost"] / total_budget < MIN_BUDGET_UTILIZATION:
         warnings.append("Low budget utilization")
 
     for day in plan["itinerary"]:
@@ -677,8 +710,22 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
         request.destination, request.days, request.preferences, budgets["activities"]
     )
 
-    flight_cost = min([flight["price"] for flight in flights], default=0.0)
-    hotel_cost = selected_hotel["total_stay_cost"] if selected_hotel else 0.0
+    flight_prices = [flight["price"] for flight in flights]
+    flight_cost = min(flight_prices) if flight_prices else min_flight_cost(request.destination)
+    if not flights and flight_cost:
+        warnings.append(
+            f"Estimated minimum flight cost is ${flight_cost:.0f} based on available data."
+        )
+
+    hotel_cost = (
+        selected_hotel["total_stay_cost"]
+        if selected_hotel
+        else min_hotel_cost(hotel_candidates)
+    )
+    if not selected_hotel and hotel_cost:
+        warnings.append(
+            "No hotel matched the current budget; using minimum available stay cost for estimates."
+        )
     total_cost = flight_cost + hotel_cost + activity_spend
 
     plan = {
