@@ -14,13 +14,12 @@ def load_hotels() -> List[Dict[str, Any]]:
         return json.load(f)
 
 
-def compute_max_hotel_budget(total_budget: float, days: int) -> float:
+def compute_max_hotel_budget(total_budget: float, days: int, hotel_budget_pct: float = 0.40) -> float:
     """
-    Allocate 40% of total budget to accommodation.
-    Remaining 60% covers flights + activities.
+    Allocate a percentage of total budget to accommodation.
     Returns max spend per night.
     """
-    hotel_budget_total = total_budget * 0.40
+    hotel_budget_total = total_budget * hotel_budget_pct
     return hotel_budget_total / days
 
 
@@ -64,6 +63,7 @@ def get_top_hotels(
     total_budget: float,
     days: int,
     top_n: int = 2,
+    hotel_budget_pct: float = 0.40,
 ) -> Dict[str, Any]:
     """
     Return top N hotels for a destination within the hotel budget, ranked by score.
@@ -78,7 +78,7 @@ def get_top_hotels(
     warnings = []
     all_hotels = load_hotels()
 
-    max_per_night = compute_max_hotel_budget(total_budget, days)
+    max_per_night = compute_max_hotel_budget(total_budget, days, hotel_budget_pct)
 
     # Step 1 — filter
     candidates = filter_by_destination_and_budget(all_hotels, destination, max_per_night)
@@ -115,3 +115,33 @@ def get_top_hotels(
         "max_per_night": round(max_per_night, 2),
         "warnings": warnings,
     }
+
+
+def find_upgrade(
+    destination: str,
+    current_hotel: Dict[str, Any],
+    max_budget_per_night: float,
+    days: int,
+) -> Dict[str, Any] | None:
+    """
+    Find a better hotel (higher rating) within the new budget ceiling.
+    Returns the upgraded hotel dict or None if no upgrade is available.
+    """
+    all_hotels = load_hotels()
+    destination_lower = destination.lower()
+
+    candidates = [
+        h for h in all_hotels
+        if h["destination"].lower() == destination_lower
+        and h["price_per_night"] <= max_budget_per_night
+        and h["rating"] > current_hotel["rating"]
+        and h["id"] != current_hotel["id"]
+    ]
+
+    if not candidates:
+        return None
+
+    # Pick the highest-rated option within budget
+    best = max(candidates, key=lambda h: h["rating"])
+    best["total_stay_cost"] = round(best["price_per_night"] * days, 2)
+    return best
