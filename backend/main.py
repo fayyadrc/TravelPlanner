@@ -327,19 +327,19 @@ def allocate_budget(total_budget: float) -> Dict[str, float]:
     }
 
 
-def min_flight_cost(destination: str) -> float:
+def min_flight_cost(destination: str) -> Optional[float]:
     normalized = normalize_destination(destination)
     costs = [
         flight["price"]
         for flight in FLIGHTS
         if normalize_destination(flight["destination"]) == normalized
     ]
-    return float(min(costs)) if costs else 0.0
+    return float(min(costs)) if costs else None
 
 
-def min_hotel_cost(hotel_candidates: List[Dict[str, Any]]) -> float:
+def min_hotel_cost(hotel_candidates: List[Dict[str, Any]]) -> Optional[float]:
     costs = [hotel["total_stay_cost"] for hotel in hotel_candidates]
-    return float(min(costs)) if costs else 0.0
+    return float(min(costs)) if costs else None
 
 
 def select_flights(destination: str, flight_budget: float) -> List[Dict[str, Any]]:
@@ -472,9 +472,9 @@ def pick_activity(
     return ranked[0]
 
 
-def add_free_exploration(day: int, index: int, duration: float) -> Dict[str, Any]:
+def add_free_exploration(day: int, free_slot_index: int, duration: float) -> Dict[str, Any]:
     return {
-        "id": f"FREE-{day}-{index}",
+        "id": f"FREE-{day}-{free_slot_index}",
         "destination": "",
         "name": "Free Exploration",
         "type": ["flex"],
@@ -710,22 +710,37 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
         request.destination, request.days, request.preferences, budgets["activities"]
     )
 
+    missing_costs = False
     flight_prices = [flight["price"] for flight in flights]
     flight_cost = min(flight_prices) if flight_prices else min_flight_cost(request.destination)
-    if not flights and flight_cost:
-        warnings.append(
-            f"Estimated minimum flight cost is ${flight_cost:.0f} based on available data."
-        )
+    if not flights:
+        if flight_cost is None:
+            missing_costs = True
+            flight_cost = 0.0
+            warnings.append(
+                f"No flight data available for '{request.destination}'."
+            )
+        else:
+            warnings.append(
+                f"Estimated minimum flight cost is ${flight_cost:.0f} based on available data."
+            )
 
     hotel_cost = (
         selected_hotel["total_stay_cost"]
         if selected_hotel
         else min_hotel_cost(hotel_candidates)
     )
-    if not selected_hotel and hotel_cost:
-        warnings.append(
-            "No hotel matched the current budget; using minimum available stay cost for estimates."
-        )
+    if not selected_hotel:
+        if hotel_cost is None:
+            missing_costs = True
+            hotel_cost = 0.0
+            warnings.append(
+                f"No hotel data available for '{request.destination}'."
+            )
+        else:
+            warnings.append(
+                "No hotel matched the current budget; using minimum available stay cost for estimates."
+            )
     total_cost = flight_cost + hotel_cost + activity_spend
 
     plan = {
@@ -742,7 +757,7 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
             "activities": round(activity_spend, 2),
             "remaining": round(request.budget - total_cost, 2),
         },
-        "within_budget": total_cost <= request.budget,
+        "within_budget": total_cost <= request.budget and not missing_costs,
         "warnings": warnings,
     }
 
@@ -764,7 +779,7 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
         request.preferences,
     )
 
-    plan["within_budget"] = plan["total_cost"] <= request.budget
+    plan["within_budget"] = plan["total_cost"] <= request.budget and not missing_costs
     plan["warnings"].extend(validate_plan(plan, request.budget))
     return plan
 
