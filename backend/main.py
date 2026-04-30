@@ -29,7 +29,7 @@ HOTEL_STAR_WEIGHT = 0.3
 HOTEL_PRICE_WEIGHT_DIVISOR = 200
 ACTIVITY_COST_BASELINE = 2.5
 ACTIVITY_COST_DIVISOR = 50
-OPTIMIZATION_REMAINING_THRESHOLD = 0.1
+OPTIMIZATION_REMAINING_THRESHOLD = 0.1  # Stop adding upgrades once within 10% of budget.
 MIN_BUDGET_UTILIZATION = 0.8
 
 
@@ -666,6 +666,8 @@ def validate_plan(
     for day in plan["itinerary"]:
         for activity in day["activities"]:
             activity_id = activity["id"]
+            if activity_id.startswith("FREE-"):
+                continue
             if activity_id in seen_ids:
                 duplicates.add(activity_id)
             seen_ids.add(activity_id)
@@ -690,10 +692,13 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
     flights = select_flights(request.destination, budgets["flight"])
     warnings: List[str] = []
     if not flights:
-        budgets, shifted = reallocate_for_flights(budgets, request.budget)
-        if shifted > 0:
+        reallocated_budgets, shift_amount = reallocate_for_flights(
+            budgets, request.budget
+        )
+        if shift_amount > 0:
+            budgets = reallocated_budgets
             warnings.append(
-                f"Reallocated ${shifted:.0f} toward flights to find options within budget."
+                f"Reallocated ${shift_amount:.0f} toward flights to find options within budget."
             )
         flights = select_flights(request.destination, budgets["flight"])
         if not flights:
@@ -711,8 +716,10 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
     )
 
     missing_costs = False
-    flight_prices = [flight["price"] for flight in flights]
-    flight_cost = min(flight_prices) if flight_prices else min_flight_cost(request.destination)
+    flight_cost = min(
+        (flight["price"] for flight in flights),
+        default=min_flight_cost(request.destination),
+    )
     if not flights:
         if flight_cost is None:
             missing_costs = True
