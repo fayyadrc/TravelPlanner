@@ -481,6 +481,7 @@ def pick_activity(
 
 
 def add_free_exploration(day: int, exploration_index: int, duration: float) -> Dict[str, Any]:
+    """Create a zero-cost placeholder activity to fill remaining time in a day."""
     return {
         "id": f"FREE-{day}-{exploration_index}",
         "destination": "",
@@ -576,6 +577,7 @@ def upgrade_hotel(
     total_budget: float,
     total_cost: float,
 ) -> Tuple[Dict[str, Any], float, bool]:
+    """Select a higher-rated hotel option if it fits within the total budget."""
     best = current
     new_total = total_cost
     for hotel in sorted(options, key=lambda hotel: (-hotel["score"], hotel["total_stay_cost"])):
@@ -596,6 +598,7 @@ def add_optional_activity(
     preferences: List[str],
     remaining_budget: float,
 ) -> Tuple[float, bool]:
+    """Add a paid activity in-place if time and budget remain, returning cost spent."""
     for day in itinerary:
         remaining_hours = MAX_DAY_HOURS - day["day_hours"]
         if remaining_hours <= 0:
@@ -632,6 +635,7 @@ def optimize_plan(
     used_ids: set,
     preferences: List[str],
 ) -> Tuple[Dict[str, Any], float]:
+    """Improve budget utilization by upgrading hotels or adding activities in-place."""
     total_cost = plan["total_cost"]
     remaining_budget = total_budget - total_cost
 
@@ -667,6 +671,7 @@ def optimize_plan(
 def get_plan_warnings(
     plan: Dict[str, Any], total_budget: float
 ) -> List[str]:
+    """Return human-readable warnings for missing data or quality issues."""
     warnings: List[str] = []
 
     if not plan["flights"]:
@@ -705,6 +710,7 @@ def get_plan_warnings(
 
 
 def build_plan(request: PlanRequest) -> Dict[str, Any]:
+    """Build a deterministic trip plan with reallocation, optimization, and validation."""
     budgets = allocate_budget(request.budget)
     flights = select_flights(request.destination, budgets["flight"])
     warnings: List[str] = []
