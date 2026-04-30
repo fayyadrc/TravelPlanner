@@ -22,17 +22,23 @@ REALLOCATE_ACTIVITY_SHARE = 0.40
 MIN_DAY_HOURS = 6.0
 MAX_DAY_HOURS = 8.0
 FREE_EXPLORATION_HOURS = 2.0
+MIN_FREE_EXPLORATION_HOURS = 1.0
 AREA_BONUS = 1.5
 DISTANCE_PENALTY = 0.5
 HOTEL_RATING_WEIGHT = 0.7
 HOTEL_STAR_WEIGHT = 0.3
 HOTEL_PRICE_WEIGHT_DIVISOR = 200
+PREFERENCE_MATCH_WEIGHT = 2.0
 ACTIVITY_COST_BASELINE = 2.5
 ACTIVITY_COST_DIVISOR = 50
 OPTIMIZATION_REMAINING_THRESHOLD = (
     0.1  # Continue adding upgrades while more than 10% of the budget remains.
 )
 MIN_BUDGET_UTILIZATION = 0.8
+
+ALLOCATION_TOTAL = FLIGHT_ALLOCATION + HOTEL_ALLOCATION + ACTIVITY_ALLOCATION
+if abs(ALLOCATION_TOTAL - 1.0) > 0.001:
+    raise ValueError("Budget allocation percentages must sum to 1.0.")
 
 
 FLIGHTS: List[Dict[str, Any]] = [
@@ -426,7 +432,7 @@ def preference_score(activity: Dict[str, Any], preferences: List[str]) -> float:
     if not preferences:
         return 0.0
     matches = set(preferences) & set(activity["type"])
-    return float(len(matches)) * 2.0
+    return float(len(matches)) * PREFERENCE_MATCH_WEIGHT
 
 
 def activity_score(
@@ -538,7 +544,11 @@ def plan_itinerary(
             while day_hours < MIN_DAY_HOURS and day_hours < MAX_DAY_HOURS:
                 remaining_hours = MAX_DAY_HOURS - day_hours
                 needed = MIN_DAY_HOURS - day_hours
-                duration = min(max(needed, 1.0), remaining_hours, FREE_EXPLORATION_HOURS)
+                duration = min(
+                    max(needed, MIN_FREE_EXPLORATION_HOURS),
+                    remaining_hours,
+                    FREE_EXPLORATION_HOURS,
+                )
                 day_activities.append(add_free_exploration(day, free_index, duration))
                 free_index += 1
                 day_hours += duration
