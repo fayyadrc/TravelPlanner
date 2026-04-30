@@ -1,0 +1,31 @@
+# --- Python / FastAPI ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.env
+.flaskenv
+
+# --- Project Specifics ---
+# We keep flights.json, hotels.json etc. as they are your "database" for the MVP.
+# But we ignore any temporary logs or generated output files.
+logs/
+*.log
+temp/
+
+# --- OS / IDE ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Optional: If you use a database later ---
+*.db
+*.sqlite3
