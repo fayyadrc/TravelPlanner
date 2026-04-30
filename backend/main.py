@@ -29,7 +29,9 @@ HOTEL_STAR_WEIGHT = 0.3
 HOTEL_PRICE_WEIGHT_DIVISOR = 200
 ACTIVITY_COST_BASELINE = 2.5
 ACTIVITY_COST_DIVISOR = 50
-OPTIMIZATION_REMAINING_THRESHOLD = 0.1  # Stop adding upgrades once within 10% of budget.
+OPTIMIZATION_REMAINING_THRESHOLD = (
+    0.1  # Continue adding upgrades while more than 10% of the budget remains.
+)
 MIN_BUDGET_UTILIZATION = 0.8
 
 
@@ -532,13 +534,14 @@ def plan_itinerary(
             remaining_budget -= candidate["cost"]
             day_area = day_area or candidate["area"]
 
-        while day_hours < MIN_DAY_HOURS and day_hours < MAX_DAY_HOURS:
-            remaining_hours = MAX_DAY_HOURS - day_hours
-            needed = MIN_DAY_HOURS - day_hours
-            duration = min(max(needed, 1.0), remaining_hours, FREE_EXPLORATION_HOURS)
-            day_activities.append(add_free_exploration(day, free_index, duration))
-            free_index += 1
-            day_hours += duration
+        if day_hours < MIN_DAY_HOURS:
+            while day_hours < MIN_DAY_HOURS and day_hours < MAX_DAY_HOURS:
+                remaining_hours = MAX_DAY_HOURS - day_hours
+                needed = MIN_DAY_HOURS - day_hours
+                duration = min(max(needed, 1.0), remaining_hours, FREE_EXPLORATION_HOURS)
+                day_activities.append(add_free_exploration(day, free_index, duration))
+                free_index += 1
+                day_hours += duration
 
         if day_hours < MIN_DAY_HOURS:
             logger.info(
@@ -720,17 +723,14 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
     )
 
     missing_costs = False
-    flight_cost = min(
-        (flight["price"] for flight in flights),
-        default=min_flight_cost(request.destination),
-    )
-    if not flights:
+    if flights:
+        flight_cost = min(flight["price"] for flight in flights)
+    else:
+        flight_cost = min_flight_cost(request.destination)
         if flight_cost is None:
             missing_costs = True
             flight_cost = 0.0
-            warnings.append(
-                f"No flight data available for '{request.destination}'."
-            )
+            warnings.append(f"No flight data available for '{request.destination}'.")
         else:
             warnings.append(
                 f"Estimated minimum flight cost is ${flight_cost:.0f} based on available data."
