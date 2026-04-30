@@ -447,7 +447,7 @@ def pick_activity(
     day_area: Optional[str],
     remaining_budget: float,
     remaining_hours: float,
-    prefer_high_cost: bool = False,
+    prefer_expensive_activities: bool = False,
 ) -> Optional[Dict[str, Any]]:
     candidates = []
     for activity in activities:
@@ -466,15 +466,15 @@ def pick_activity(
         candidates,
         key=lambda activity: (
             -activity_score(activity, preferences, day_area),
-            -activity["cost"] if prefer_high_cost else activity["cost"],
+            -activity["cost"] if prefer_expensive_activities else activity["cost"],
         ),
     )
     return ranked[0]
 
 
-def add_free_exploration(day: int, free_slot_index: int, duration: float) -> Dict[str, Any]:
+def add_free_exploration(day: int, exploration_index: int, duration: float) -> Dict[str, Any]:
     return {
-        "id": f"FREE-{day}-{free_slot_index}",
+        "id": f"FREE-{day}-{exploration_index}",
         "destination": "",
         "name": "Free Exploration",
         "type": ["flex"],
@@ -597,7 +597,7 @@ def add_optional_activity(
             day_area,
             remaining_budget,
             remaining_hours,
-            prefer_high_cost=True,
+            prefer_expensive_activities=True,
         )
         if not candidate:
             continue
@@ -651,7 +651,7 @@ def optimize_plan(
     return plan, remaining_budget
 
 
-def validate_plan(
+def get_plan_warnings(
     plan: Dict[str, Any], total_budget: float
 ) -> List[str]:
     warnings: List[str] = []
@@ -680,9 +680,13 @@ def validate_plan(
 
     for day in plan["itinerary"]:
         if day["day_hours"] < MIN_DAY_HOURS:
-            warnings.append(f"Day {day['day']}: underplanned day")
+            warnings.append(
+                f"Day {day['day']}: fewer than minimum recommended hours of activities"
+            )
         if day["day_hours"] > MAX_DAY_HOURS:
-            warnings.append(f"Day {day['day']}: overplanned day")
+            warnings.append(
+                f"Day {day['day']}: exceeds maximum recommended hours of activities"
+            )
 
     return warnings
 
@@ -787,7 +791,7 @@ def build_plan(request: PlanRequest) -> Dict[str, Any]:
     )
 
     plan["within_budget"] = plan["total_cost"] <= request.budget and not missing_costs
-    plan["warnings"].extend(validate_plan(plan, request.budget))
+    plan["warnings"].extend(get_plan_warnings(plan, request.budget))
     return plan
 
 
